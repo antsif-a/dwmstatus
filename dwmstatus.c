@@ -1,9 +1,3 @@
-/*
- * Copy me if you can.
- * by 20h
- */
-
-#define _BSD_SOURCE
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,9 +11,8 @@
 
 #include <X11/Xlib.h>
 
-char *tzargentina = "America/Buenos_Aires";
 char *tzutc = "UTC";
-char *tzberlin = "Europe/Berlin";
+char *tzmoscow = "Europe/Moscow";
 
 static Display *dpy;
 
@@ -154,6 +147,8 @@ getbattery(char *base)
 		status = '-';
 	} else if(!strncmp(co, "Charging", 8)) {
 		status = '+';
+	} else if(!strncmp(co, "Not charging", 12)) {
+		status = '=';
 	} else {
 		status = '?';
 	}
@@ -161,7 +156,7 @@ getbattery(char *base)
 	if (remcap < 0 || descap < 0)
 		return smprintf("invalid");
 
-	return smprintf("%.0f%%%c", ((float)remcap / (float)descap) * 100, status);
+	return smprintf("%.0f%% (%c)", ((float)remcap / (float)descap) * 100, status);
 }
 
 char *
@@ -179,44 +174,26 @@ int
 main(void)
 {
 	char *status;
-	char *avgs;
 	char *bat;
-	char *bat1;
-	char *tmar;
+	char *tmmsk;
 	char *tmutc;
-	char *tmbln;
-	char *t0, *t1, *t2;
 
 	if (!(dpy = XOpenDisplay(NULL))) {
 		fprintf(stderr, "dwmstatus: cannot open display.\n");
 		return 1;
 	}
 
-	for (;;sleep(60)) {
-		avgs = loadavg();
+	for (;;sleep(30)) {
 		bat = getbattery("/sys/class/power_supply/BAT0");
-		bat1 = getbattery("/sys/class/power_supply/BAT1");
-		tmar = mktimes("%H:%M", tzargentina);
 		tmutc = mktimes("%H:%M", tzutc);
-		tmbln = mktimes("KW %W %a %d %b %H:%M %Z %Y", tzberlin);
-		t0 = gettemperature("/sys/devices/virtual/hwmon/hwmon0", "temp1_input");
-		t1 = gettemperature("/sys/devices/virtual/hwmon/hwmon2", "temp1_input");
-		t2 = gettemperature("/sys/devices/virtual/hwmon/hwmon4", "temp1_input");
-
-		status = smprintf("T:%s|%s|%s L:%s B:%s|%s A:%s U:%s %s",
-				t0, t1, t2, avgs, bat, bat1, tmar, tmutc,
-				tmbln);
+		tmmsk = mktimes("%H:%M", tzmoscow);
+		status = smprintf("Battery: %s | Time - UTC: %s MSK: %s",
+				  bat, tmutc, tmmsk);
 		setstatus(status);
 
-		free(t0);
-		free(t1);
-		free(t2);
-		free(avgs);
 		free(bat);
-		free(bat1);
-		free(tmar);
 		free(tmutc);
-		free(tmbln);
+		free(tmmsk);
 		free(status);
 	}
 
